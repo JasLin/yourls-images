@@ -1,0 +1,31 @@
+version: '3.1'
+
+services:
+
+  yourls:
+    # build: 
+      # context: ./
+      # dockerfile: Dockerfile
+    # image: yourls
+    image: climbing/yourls:latest
+    restart: always
+    ports:
+      - 8080:80 # apache image
+    environment:
+      YOURLS_DB_PASS: example
+      YOURLS_SITE: http://localhost:8080
+      YOURLS_USER: example_username
+      YOURLS_PASS: example_password
+      YOURLS_UNIQUE_URLS: 'False'
+      YOURLS_HOURS_OFFSET: '+8'
+    # volumes:
+      # - ./Always-302:/var/www/html/user/plugins/Always-302
+    
+
+  mysql:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    # volumes:
+      # - ./data:/var/lib/mysql
