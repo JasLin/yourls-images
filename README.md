@@ -124,3 +124,10 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: example
 ```
+
+# kubernetes deploy
+
+```shell
+kubectl apply -f mysql-pvc.yml
+kubectl apply -f k8s.yml
+```

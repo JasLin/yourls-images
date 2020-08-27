@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-mysql
+  labels:
+    k8s-app: mysql
+spec:
+  minReadySeconds: 10
+  strategy:
+    type: Recreate
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 1
+    #   maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: pod-mysql
+  # replicas: 1
+  template:
+    metadata:
+      name: pod-mysql
+      labels:
+        app: pod-mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: example
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-yourls
+  labels:
+    k8s-app: yourls
+spec:
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: pod-yourls
+  replicas: 3
+  template:
+    metadata:
+      name: pod-yourls
+      labels:
+        app: pod-yourls
+    spec:
+      containers:
+      - name: yourls
+        image: climbing/yourls:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: YOURLS_DB_HOST
+          value: mysql
+        - name: YOURLS_DB_PASS
+          value: example
+        - name: YOURLS_SITE
+          value: http://yourls.k3s.master
+        - name: YOURLS_USER
+          value: example_username
+        - name: YOURLS_PASS
+          value: example_password
+        - name: YOURLS_UNIQUE_URLS
+          value: 'False'
+        - name: YOURLS_HOURS_OFFSET
+          value: '+8'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: pod-mysql
+  clusterIP: None
+---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: svc-yourls
+  spec:
+    type: ClusterIP
+    selector:
+      app: pod-yourls
+    ports:
+      - name: http
+        protocol: TCP
+        port: 9376
+        targetPort: 80
+        # 默认情况下，为了方便起见，Kubernetes 控制平面会从某个范围内分配一个端口号（默认：30000-32767）
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-yourls
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: yourls.k3s.master
+    http:
+      paths:
+      - path: /
+        # pathType: Prefix
+        backend:
+          serviceName: svc-yourls
+          servicePort: 9376
