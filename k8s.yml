@@ -22,6 +22,8 @@ spec:
       labels:
         app: pod-mysql
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: k3s-wensi-sit-work2 # 当实例，只跑在work2
       containers:
       - name: mysql
         image: mysql:5.7
@@ -101,6 +103,9 @@ spec:
     type: ClusterIP
     selector:
       app: pod-yourls
+    # service路由到deploy部署的pod的时候，使用clientIP来保证每次同一个clientip都路由到相同的pod
+    # 但是这个在multipass的环境下没有效，因为如果在multipass的宿主机访问service的时候，到达所有pod的clientIp都是一样
+    sessionAffinity: ClientIP
     ports:
       - name: http
         protocol: TCP
@@ -114,6 +119,13 @@ metadata:
   name: ingress-yourls
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    # 为了解决上面service的sessionAffinity失效的情况，可以用ingress-nginx的affinity来完成
+    # 一下配置会在给请求返回一个Set-Cookie的header，设置一个cookie给客户端（如浏览器），之后用这个cookie来做路由，保持同一个会话到达同一个pod
+    # 参考： https://kubernetes.github.io/ingress-nginx/examples/affinity/cookie/
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "route"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
 spec:
   rules:
   - host: yourls.k3s.master
