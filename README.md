@@ -188,3 +188,8 @@ mysql> select * from yourls_log where shorturl='tencent' order by click_id desc 
 |      255 | 2020-10-16 10:26:31 | tencent  | direct                                                 | Mozilla/5.0 (Ubuntu; X11; Linux x86_64; rv:8.0) Gecko/20100101 Firefox/8.0                                                                            | 47.93.7.171   | CN           |
 
 ```
+
+analytics data
+```
+select * from yourls_log where referrer!='direct' and ip_address !='xx.xx.xx.xx' and referrer not like 'http://localhost%' order by click_id desc  limit 50;
+```
